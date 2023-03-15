@@ -1,18 +1,4 @@
-/*
- * Copyright (C) 2021 The Android Open Source Project.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+//Ahmed Ben Abdesselem
 
 package com.example.inventory
 
@@ -27,9 +13,53 @@ import kotlinx.coroutines.launch
  */
 class InventoryViewModel(private val itemDao: ItemDao) : ViewModel() {
 
+    private fun getUpdatedItemEntry(
+        itemId: Int,
+        itemName: String,
+        itemPrice: String,
+        itemCount: String
+    ): Item {
+        return Item(
+            id = itemId,
+            itemName = itemName,
+            itemPrice = itemPrice.toDouble(),
+            quantityInStock = itemCount.toInt()
+        )
+    }
+    fun updateItem(
+        itemId: Int,
+        itemName: String,
+        itemPrice: String,
+        itemCount: String
+    ) {
+        val updatedItem = getUpdatedItemEntry(itemId, itemName, itemPrice, itemCount)
+        updateItem(updatedItem)
+    }
+
+    private fun updateItem(item: Item) {
+        viewModelScope.launch {
+            itemDao.update(item)
+        }
+    }
+    fun sellItem(item: Item) {
+        if (item.quantityInStock > 0) {
+            // Decrease the quantity by 1
+            val newItem = item.copy(quantityInStock = item.quantityInStock - 1)
+            updateItem(newItem)
+        }
+    }
+    fun isStockAvailable(item: Item): Boolean {
+        return (item.quantityInStock > 0)
+    }
+
     fun retrieveItem(id: Int): LiveData<Item> {
         return itemDao.getItem(id).asLiveData()
 
+    }
+    fun deleteItem(item: Item) {
+        viewModelScope.launch {
+            itemDao.delete(item)
+        }
     }
     val allItems: LiveData<List<Item>> = itemDao.getItems().asLiveData()
     /**
@@ -83,4 +113,5 @@ class InventoryViewModelFactory(private val itemDao: ItemDao) : ViewModelProvide
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
+
 }
